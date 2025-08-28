@@ -61,3 +61,4 @@ def genetic_algorithm():
     print("\nFinal Best Solution:", decoded[best_idx], population[best_idx], "fitness=", fitnesses[best_idx])
 
 genetic_algorithm()
+
