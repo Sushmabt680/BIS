@@ -1,0 +1,89 @@
+import numpy as np
+import random
+
+NUM_ANTS =2
+NUM_ITERATIONS = 50
+ALPHA = 1.0
+BETA = 5.0
+EVAPORATION = 0.5
+Q = 100
+
+def input_matrix(name):
+    print(f"Enter the {name} matrix row by row (space-separated). Type 'done' when finished:")
+    matrix = []
+    while True:
+        row = input()
+        if row.strip().lower() == 'done':
+            break
+        row_values = list(map(float, row.strip().split()))
+        matrix.append(row_values)
+    return np.array(matrix)
+
+print("Input Cost Matrix (Distance Matrix):")
+dist_matrix = input_matrix("cost")
+NUM_CITIES = len(dist_matrix)
+
+print("\nInput Initial Pheromone Matrix:")
+pheromone = input_matrix("pheromone")
+
+assert dist_matrix.shape == (NUM_CITIES, NUM_CITIES), "Cost matrix must be square."
+assert pheromone.shape == (NUM_CITIES, NUM_CITIES), "Pheromone matrix must be square."
+
+best_distance = float('inf')
+best_path = []
+
+for iteration in range(NUM_ITERATIONS):
+    all_paths = []
+    all_distances = []
+
+    for ant in range(NUM_ANTS):
+        path = [random.randint(0, NUM_CITIES - 1)]
+
+        while len(path) < NUM_CITIES:
+            current_city = path[-1]
+            probabilities = []
+
+            for next_city in range(NUM_CITIES):
+                if next_city not in path:
+                    tau = pheromone[current_city][next_city] ** ALPHA
+                    eta = (1 / dist_matrix[current_city][next_city]) ** BETA
+                    probabilities.append(tau * eta)
+                else:
+                    probabilities.append(0)
+
+            probabilities = np.array(probabilities)
+            probabilities_sum = probabilities.sum()
+            if probabilities_sum == 0:
+                break 
+            probabilities /= probabilities_sum
+
+            next_city = np.random.choice(range(NUM_CITIES), p=probabilities)
+            path.append(next_city)
+
+        if len(path) < NUM_CITIES:
+            continue
+
+        path.append(path[0]) 
+        distance = sum(dist_matrix[path[i]][path[i + 1]] for i in range(NUM_CITIES))
+        all_paths.append(path)
+        all_distances.append(distance)
+
+        if distance < best_distance:
+            best_distance = distance
+            best_path = path
+
+    pheromone *= (1 - EVAPORATION)
+
+    for i in range(len(all_paths)):
+        for j in range(NUM_CITIES):
+            from_city = all_paths[i][j]
+            to_city = all_paths[i][j + 1]
+            pheromone[from_city][to_city] += Q / all_distances[i]
+            pheromone[to_city][from_city] += Q / all_distances[i] 
+
+    if iteration % 10 == 0 or iteration == NUM_ITERATIONS - 1:
+        print(f"Iteration {iteration}: Best Distance = {best_distance:.2f}")
+
+print("\nBest Path Found:")
+print(" -> ".join(map(str, best_path)))
+print(f"Total Distance: {best_distance:.2f}")
